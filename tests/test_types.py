@@ -1,16 +1,17 @@
 import datetime
+from unittest.mock import MagicMock, call
 
-from pywa import types, WhatsApp
+import pytest
+
+from pywa import WhatsApp, types
 from pywa.types import Result
 from pywa.types.flows import FlowDetails
 from pywa.types.sent_update import (
+    InitiatedCall,
     SentMessage,
     SentTemplate,
     SentTemplateStatus,
-    InitiatedCall,
 )
-import pytest
-from unittest.mock import MagicMock, call
 
 wa = WhatsApp(phone_id="123456789", token="token")
 

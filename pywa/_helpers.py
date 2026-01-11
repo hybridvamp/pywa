@@ -27,41 +27,42 @@ import re
 import threading
 from concurrent import futures
 from typing import (
-    Any,
-    BinaryIO,
-    Iterable,
     TYPE_CHECKING,
-    NamedTuple,
-    Literal,
-    Iterator,
+    Any,
     AsyncIterable,
     AsyncIterator,
+    BinaryIO,
+    Iterable,
+    Iterator,
+    Literal,
+    NamedTuple,
 )
 
 import httpx
 
+from pywa.types.others import InteractiveType
+
 from .types import (
-    FlowMetricName,
-    FlowMetricGranularity,
-    FlowJSON,
+    Button,
+    ButtonUrl,
     CallbackData,
+    CallPermissionRequestButton,
+    FlowButton,
+    FlowJSON,
+    FlowMetricGranularity,
+    FlowMetricName,
+    SectionList,
     URLButton,
     VoiceCallButton,
-    SectionList,
-    FlowButton,
-    Button,
-    CallPermissionRequestButton,
-    ButtonUrl,
 )
-from pywa.types.others import InteractiveType
 from .types.media import Media
 from .types.templates import (
+    BaseParams,
+    Carousel,
+    HeaderFormatType,
     TemplateBaseComponent,
     _BaseMediaHeaderComponent,
-    HeaderFormatType,
-    Carousel,
     _BaseMediaParams,
-    BaseParams,
 )
 
 if TYPE_CHECKING:
@@ -382,12 +383,13 @@ def get_media_from_file_like_obj(
     try:
         length = os.fstat(file_obj.fileno()).st_size
     except (AttributeError, OSError):
-        pos = file_obj.tell()
-        file_obj.seek(0, io.SEEK_END)
-        length = file_obj.tell()
-        file_obj.seek(pos)
-    except (AttributeError, OSError):
-        length = None
+        try:
+            pos = file_obj.tell()
+            file_obj.seek(0, io.SEEK_END)
+            length = file_obj.tell()
+            file_obj.seek(pos)
+        except (AttributeError, OSError):
+            length = None
     filename = getattr(file_obj, "name", None)
     return MediaInfo(
         content=file_obj,
@@ -458,6 +460,7 @@ def internal_upload_media(
     media_type: str | None,
     mime_type: str | None,
     filename: str | None,
+    ttl_minutes: int | None = None,
     download_chunk_size: int | None,
     wa: WhatsApp,
     phone_id: str,
@@ -526,9 +529,11 @@ def internal_upload_media(
                 or media_info.mime_type
                 or _media_types_default_mime_types.get(media_type, "text/plain"),
                 filename=final_filename,
+                ttl_minutes=ttl_minutes,
             )["id"],
             uploaded_to=phone_id,
             filename=final_filename,
+            ttl_minutes=ttl_minutes,
         )
 
     finally:

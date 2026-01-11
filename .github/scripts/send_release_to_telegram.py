@@ -1,5 +1,6 @@
-import os
 import asyncio
+import logging
+import os
 
 from pyrogram import Client, types
 
@@ -65,7 +66,7 @@ async def send_to_telegram():
     release_body = os.getenv("RELEASE_BODY")
 
     message = format_release_message(release_tag, release_name, release_body)
-    print(message)
+    logging.info("Formatted message:\n%s", message)
 
     bot = Client(name="pywa_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 

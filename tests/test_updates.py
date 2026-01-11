@@ -1,19 +1,20 @@
 from typing import Any, Callable
 
 from pywa.types import (
-    MessageType,
-    MessageStatusType,
     MarketingPreference,
+    MessageStatusType,
+    MessageType,
 )
 from pywa.types.calls import (
-    CallEvent,
     CallDirection,
+    CallEvent,
     CallPermissionResponse,
     CallPermissionResponseSource,
 )
-from pywa.types.media import Image, Video, Document, Audio
+from pywa.types.media import Audio, Document, Image, Video
 from pywa.types.system import SystemType
-from pywa.types.templates import TemplateStatus, TemplateCategory, QualityScoreType
+from pywa.types.templates import QualityScoreType, TemplateCategory, TemplateStatus
+
 from .common import CLIENTS
 
 # {update_file: {update_name: [test_funcs]}}
@@ -150,7 +151,7 @@ TESTS: dict[str, dict[str, list[Callable[[Any], bool]]]] = {
 
 
 def test_types():
-    for client, update_files in CLIENTS.items():
+    for update_files in CLIENTS.values():
         for file, updates in update_files.items():
             for update_name, update in updates.items():
                 for test_func in TESTS[file.stem][update_name]:
@@ -159,4 +160,4 @@ def test_types():
                     except AssertionError as e:
                         raise AssertionError(
                             f"Failed to assert update_name='{update_name}' error={e}"
-                        )
+                        ) from e

@@ -3,40 +3,37 @@ from __future__ import annotations
 import asyncio
 import itertools
 import mimetypes
+import pathlib
 from contextlib import _AsyncGeneratorContextManager
+from typing import TYPE_CHECKING, AsyncIterator, BinaryIO, Coroutine, Iterator, Literal
 
 import httpx
 
 from pywa._helpers import *  # noqa: F403
-
-import pathlib
-
 from pywa._helpers import (
-    _media_types_default_filenames,
-    _template_header_formats_filename,
-    _template_header_formats_default_mime_types,
-    _media_types_default_mime_types,
-    detect_media_source,
-    MediaSource,
-    get_media_from_path,
+    DOWNLOAD_CHUNK_SIZE,
+    GeneratorStreamer,
     MediaInfo,
-    get_media_from_file_like_obj,
+    MediaSource,
     _filter_not_uploaded_comps,
     _filter_not_uploaded_params,
     _header_format_to_media_type,
+    _media_types_default_filenames,
+    _media_types_default_mime_types,
+    _template_header_formats_default_mime_types,
+    _template_header_formats_filename,
+    detect_media_source,
     get_filename_from_httpx_response_headers,
-    DOWNLOAD_CHUNK_SIZE,
-    GeneratorStreamer,
     get_media_from_base64,
+    get_media_from_file_like_obj,
+    get_media_from_path,
 )
 from pywa.types.templates import (
+    BaseParams,
     TemplateBaseComponent,
     _BaseMediaHeaderComponent,
     _BaseMediaParams,
-    BaseParams,
 )
-
-from typing import BinaryIO, Literal, TYPE_CHECKING, Coroutine, Iterator, AsyncIterator
 
 from .types.media import Media
 
@@ -178,6 +175,7 @@ async def internal_upload_media(
     media_type: str | None,
     mime_type: str | None,
     filename: str | None,
+    ttl_minutes: int | None = None,
     wa: WhatsApp,
     phone_id: str,
     dl_session: httpx.Client | None = None,
@@ -254,10 +252,12 @@ async def internal_upload_media(
                     or media_info.mime_type
                     or _media_types_default_mime_types.get(media_type, "text/plain"),
                     filename=final_filename,
+                    ttl_minutes=ttl_minutes,
                 )
             )["id"],
             uploaded_to=phone_id,
             filename=final_filename,
+            ttl_minutes=ttl_minutes,
         )
     finally:
         try:

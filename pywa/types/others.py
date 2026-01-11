@@ -9,31 +9,26 @@ from ..errors import WhatsAppError
 """Types for other objects."""
 
 import dataclasses
-import math
-import logging
 import datetime
-
+import logging
+import math
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
-    TypeVar,
-    Protocol,
-    Generic,
-    Iterator,
     ClassVar,
+    Generic,
+    Iterable,
+    Iterator,
     Literal,
+    Protocol,
+    TypeVar,
 )
 
 from .. import utils
 
 if TYPE_CHECKING:
-    from .message_status import MessageStatus
-    from .chat_opened import ChatOpened
-    from .media import Image, Video, Document, Audio, Sticker
-    from .callback import CallbackButton, CallbackSelection
-    from .calls import CallPermissions, CallingSettings
     from ..client import WhatsApp
+    from .calls import CallPermissions
 
 _logger = logging.getLogger(__name__)
 
@@ -90,7 +85,7 @@ class User:
             BlockUserError: If the user was not blocked
         """
         res = self._client.block_users((self.wa_id,))
-        added = self.wa_id in {u.input for u in res.added_users}
+        added = self.wa_id in {u.wa_id for u in res.added_users}
         if not added:
             raise res.errors
         return added
@@ -105,7 +100,7 @@ class User:
             bool: True if the user was unblocked, False otherwise.
         """
         return self.wa_id in {
-            u.input for u in self._client.unblock_users((self.wa_id,)).removed_users
+            u.wa_id for u in self._client.unblock_users((self.wa_id,)).removed_users
         }
 
     def get_call_permissions(self) -> CallPermissions:
@@ -956,11 +951,13 @@ class StorageStatus(utils.StrEnum):
 
     Attributes:
         DEFAULT: Default storage status.
-        IN_COUNTRY_STORAGE_ENABLED: In-country storage is enabled.
+        IN_COUNTRY_STORAGE_ENABLED: In-country storage is enabled. Read more at `developers.facebook.com <https://developers.facebook.com/documentation/business-messaging/whatsapp/local-storage>`_.
+        NO_STORAGE_ENABLED: No storage is enabled. Read more at `developers.facebook.com <https://developers.facebook.com/documentation/business-messaging/whatsapp/no-storage>`_.
     """
 
     DEFAULT = "DEFAULT"
     IN_COUNTRY_STORAGE_ENABLED = "IN_COUNTRY_STORAGE_ENABLED"
+    NO_STORAGE_ENABLED = "NO_STORAGE_ENABLED"
 
     UNKNOWN = "UNKNOWN"
 
@@ -972,40 +969,22 @@ class StorageConfiguration:
 
     - Read more at `developers.facebook.com <https://developers.facebook.com/docs/whatsapp/cloud-api/overview/local-storage>`_.
 
-    Local storage is controlled by a setting enabled or disabled at a WhatsApp business phone number level. Both Cloud API and MM Lite API support local storage, and the setting will apply to any messages sent via either API if enabled.
-
-    **How local storage works**
-
-    When Local storage is enabled, the following constraints are applied to message content for a business phone number:
-
-    - Data-in-use: When message content is sent or received by Cloud API or MM Lite API, message content may be stored on Meta data centers internationally while being processed.
-    - Data-at-rest: After the data-in-use period, message content is deleted from Meta data centers outside of the specified local storage region, and persisted only in data centers within the local storage region selected. Note that the data-in-use period differs between Cloud API and MM Lite API as specified below:
-        - When using local storage for Cloud API, the data-in-use period is up to 60 minutes.
-        - When using local storage for MM Lite API, the data-in-use period is up to 90 minutes.
-    The local storage feature supplements other WhatsApp Business Platform privacy and security controls, and allows customers to ensure a higher level of compliance with local data protection regulations.
-
-    **Data in scope**
-
-    Local storage applies to message content (text and media) sent and/or received via Cloud API and MM Lite API. The following message content are in scope of the local storage feature:
-
-    - Text messages: text payload (message body)
-    - Media messages: media payload (audio, document, image or video)
-    - Template messages (static template + parameters passed at message send time): components with text / media payload
-    In addition, a limited set of metadata attributes is included with the locally stored message content, in order to correctly associate the encrypted message payload with the originally processed message, and to audit the fact of localization. The stored metadata is protected with tokenization and encryption.
-
-    **Available Regions**
-
-    To see what regions are supported by local storage, see the ``data_localization_region`` parameter in the `documentation on phone number registration <https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration/#register>`_.
+    Attributes:
+        status: The storage status of the WhatsApp Business Phone Number.
+        data_localization_region: The region where message data is stored at rest. Required if status is ``IN_COUNTRY_STORAGE_ENABLED``.
+        retention_minutes: The duration (in minutes) for which message data is retained. Required if status is ``NO_STORAGE_ENABLED``.
     """
 
     status: StorageStatus
     data_localization_region: str | None = None
+    retention_minutes: int | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> StorageConfiguration:
         return cls(
             status=StorageStatus(data["status"]),
             data_localization_region=data.get("data_localization_region"),
+            retention_minutes=data.get("retention_minutes"),
         )
 
 
@@ -1192,6 +1171,21 @@ class BusinessPhoneNumber(utils.APIObject):
         )
 
 
+class QRCodeImageType(utils.StrEnum):
+    """
+    Represents the image type of a QR code.
+
+    Attributes:
+        PNG: PNG image type.
+        SVG: SVG image type.
+    """
+
+    PNG = "PNG"
+    SVG = "SVG"
+
+    UNKNOWN = "UNKNOWN"
+
+
 @dataclasses.dataclass(frozen=True, slots=True)
 class QRCode(utils.APIObject):
     """
@@ -1205,14 +1199,62 @@ class QRCode(utils.APIObject):
         qr_image_url: The URL of the QR code image (return only when creating a QR code).
     """
 
+    _client: WhatsApp = dataclasses.field(repr=False, hash=False, compare=False)
+    _phone_id: str = dataclasses.field(repr=False, hash=False, compare=False)
     code: str
     prefilled_message: str
     deep_link_url: str
     qr_image_url: str | None
 
+    def fetch_image(self, image_type: QRCodeImageType) -> QRCode:
+        """
+        Returns the same QRCode object with the specified image type.
+
+        - Useful for getting different image formats or if the original QR code was retrieved without an image.
+
+        >>> from pywa import WhatsApp
+        >>> wa = WhatsApp(...)
+        >>> qr_codes = wa.get_qr_codes() # image_type is None by default for faster retrieval
+        >>> svg_qr = qr_codes[0].fetch_image(QRCodeImageType.SVG) # Get the SVG version of the QR code
+
+        Args:
+            image_type: The type of the image (e.g., PNG, SVG).
+
+        Returns:
+            A new QRCode object with the specified image type.
+        """
+        return self._client.get_qr_code(
+            code=self.code, image_type=image_type, phone_id=self._phone_id
+        )
+
+    def update(self, *, prefilled_message: str) -> QRCode:
+        """
+        Updates the QR code with a new prefilled message.
+
+        Args:
+            prefilled_message: The new prefilled message for the QR code.
+
+        Returns:
+            The updated QRCode object.
+        """
+        return self._client.update_qr_code(
+            code=self.code, prefilled_message=prefilled_message, phone_id=self._phone_id
+        )
+
+    def delete(self) -> SuccessResult:
+        """
+        Deletes the QR code.
+
+        Returns:
+            A SuccessResult indicating whether the deletion was successful.
+        """
+        return self._client.delete_qr_code(code=self.code, phone_id=self._phone_id)
+
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict, client: WhatsApp, phone_id: str) -> QRCode:
         return cls(
+            _client=client,
+            _phone_id=phone_id,
             code=data["code"],
             prefilled_message=data["prefilled_message"],
             deep_link_url=data["deep_link_url"],

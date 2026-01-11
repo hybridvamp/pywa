@@ -1,13 +1,14 @@
 import datetime
-
-import pytest
-
-from pywa import types, _helpers as helpers
-from pywa.types import flows
-from pywa.types.templates import *  # noqa: F403
 import importlib
 import json
 import pathlib
+
+import pytest
+
+from pywa import _helpers as helpers
+from pywa import types
+from pywa.types import flows
+from pywa.types.templates import *  # noqa: F403
 
 
 def _resolve_example_handles(template: Template):
@@ -28,7 +29,7 @@ def test_templates_to_json(caplog):
             )
             for template_name, template_json in json_examples.items():
                 example_obj: Template = getattr(obj_examples, template_name)
-                example_dict: dict = json_examples[template_name]
+                # example_dict: dict = json_examples[template_name]
 
                 assert (
                     json.loads(
@@ -40,7 +41,7 @@ def test_templates_to_json(caplog):
                             )
                         ).to_json()
                     )
-                    == example_dict
+                    == template_json
                 ), (
                     f"Template {templates_dir.name=} {template_name=} does not match example JSON."
                 )

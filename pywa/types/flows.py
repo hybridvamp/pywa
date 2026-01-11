@@ -10,33 +10,33 @@ import json
 import logging
 import pathlib
 import re
-from urllib import parse as urllib_parse
 import warnings
 from typing import (
-    Iterable,
     TYPE_CHECKING,
     Any,
     BinaryIO,
+    Generic,
+    Iterable,
     Literal,
     Type,
-    Generic,
     TypeAlias,
     TypeVar,
 )
+from urllib import parse as urllib_parse
 
 import httpx
 
-from .media import ArrivedMedia
 from .. import utils
 from .base_update import BaseUserUpdate, RawUpdate  # noqa
+from .media import ArrivedMedia
 from .others import (
-    WhatsAppBusinessAccount,
     FacebookApplication,
     MessageType,
     Metadata,
     ReplyToMessage,
     Result,
     SuccessResult,
+    WhatsAppBusinessAccount,
 )
 
 if TYPE_CHECKING:
@@ -1213,7 +1213,9 @@ class _FlowJSONEncoder(json.JSONEncoder):
             try:
                 first = next(iter(example))
             except StopIteration:
-                raise ValueError("At least one example is required when using Iterable")
+                raise ValueError(
+                    "At least one example is required when using Iterable"
+                ) from None
             if isinstance(first, (str, int, float, bool)):
                 return {
                     "type": "array",
@@ -1295,7 +1297,8 @@ class FlowJSON:
         )
 
 
-_TO_DICT_FACTORY = lambda d: {k.replace("_", "-"): v for (k, v) in d if v is not None}
+def _to_dict_factory(d: list[tuple[str, Any]]) -> dict[str, Any]:
+    return {k.replace("_", "-"): v for (k, v) in d if v is not None}
 
 
 @dataclasses.dataclass(slots=True, kw_only=True)
@@ -1339,7 +1342,7 @@ class DataSource:
         """Called when used in :class:`FlowResponse`."""
         return dataclasses.asdict(
             obj=self,
-            dict_factory=_TO_DICT_FACTORY,
+            dict_factory=_to_dict_factory,
         )
 
 
@@ -3032,7 +3035,7 @@ class NavigationItem:
     on_click_action: NavigateAction | DataExchangeAction | None = None
 
     def to_dict(self) -> dict:
-        return dataclasses.asdict(obj=self, dict_factory=_TO_DICT_FACTORY)
+        return dataclasses.asdict(obj=self, dict_factory=_to_dict_factory)
 
 
 _FlowResponseDataType: TypeAlias = dict[

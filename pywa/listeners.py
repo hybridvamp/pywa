@@ -17,8 +17,8 @@ from . import utils
 
 if TYPE_CHECKING:
     from .client import WhatsApp
-    from .types.base_update import BaseUpdate, BaseUserUpdate
     from .filters import Filter
+    from .types.base_update import BaseUpdate, BaseUserUpdate
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -250,7 +250,7 @@ class _Listeners:
         self._listeners[to] = listener
         try:
             if not listener.event.wait(timeout):
-                raise ListenerTimeout(timeout)
+                raise ListenerTimeout(timeout) from None
 
             if listener.exception:
                 raise listener.exception
@@ -281,7 +281,7 @@ class _Listeners:
         try:
             listener = self._listeners[to]
         except KeyError:
-            raise ValueError("Listener does not exist")
+            raise ValueError("Listener does not exist") from None
         listener.stop(reason)
         self._remove_listener(identifier=to)
 

@@ -4,25 +4,19 @@ from __future__ import annotations
 
 __all__ = ["Message"]
 
+import dataclasses
 import pathlib
+from typing import TYPE_CHECKING, Iterable
 
 from pywa.types.message import *  # noqa MUST BE IMPORTED FIRST
 from pywa.types.message import Message as _Message  # noqa MUST BE IMPORTED FIRST
 
-
-import dataclasses
-from typing import TYPE_CHECKING, Iterable, Callable, Any
-
 from .base_update import BaseUserUpdateAsync  # noqa
-from .callback import Button, URLButton, SectionList, VoiceCallButton, FlowButton
+from .callback import Button, FlowButton, SectionList, URLButton, VoiceCallButton
 from .media import Audio, Document, Image, Sticker, Video
 from .others import (
     MessageType,
     ProductsSection,
-    Location,
-    Order,
-    Reaction,
-    Contact,
 )
 
 if TYPE_CHECKING:
@@ -140,7 +134,7 @@ class Message(BaseUserUpdateAsync, _Message):
                 **httpx_kwargs,
             )
         except AttributeError:
-            raise ValueError("Message does not contain any media.")
+            raise ValueError("Message does not contain any media.") from None
 
     async def copy(
         self,

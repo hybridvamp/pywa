@@ -7,32 +7,30 @@ from typing import Callable
 
 import pytest
 
-from pywa import WhatsApp, handlers, utils, filters
+from pywa import WhatsApp, filters, handlers, utils
 from pywa.handlers import FlowCompletionHandler
 from pywa.types.flows import (
-    FlowJSON,
-    Screen,
-    Layout,
-    Form,
-    TextInput,
-    InputType,
-    FlowActionType,
-    DataSource,
-    ScreenDataRef,
     ComponentRef,
-    ScreenData,
-    FlowResponse,
+    DataSource,
+    FlowJSON,
+    FlowPreview,
     FlowRequest,
     FlowRequestActionType,
-    _FlowJSONEncoder,
-    Ref,
+    FlowResponse,
+    FlowStr,
+    Form,
+    Layout,
+    NavigateAction,
+    NavigationItem,
     NavigationItemEnd,
     NavigationItemMainContent,
-    NavigationItem,
-    NavigateAction,
     Next,
-    FlowStr,
-    FlowPreview,
+    Ref,
+    Screen,
+    ScreenData,
+    ScreenDataRef,
+    TextInput,
+    _FlowJSONEncoder,
 )
 from pywa.utils import Version
 
@@ -47,9 +45,8 @@ def test_flows_to_json():
                 obj_examples = importlib.import_module(
                     f"tests.data.flows.{version.name}.examples"
                 )
-                for flow_name, flow_json in json_examples.items():
+                for flow_name, example_dict in json_examples.items():
                     obj_dict = json.loads(getattr(obj_examples, flow_name).to_json())
-                    example_dict = json_examples[flow_name]
                     assert obj_dict["version"] == version.name.replace("_", ".")
                     assert example_dict["version"] == version.name.replace("_", ".")
                     assert obj_dict == example_dict, (

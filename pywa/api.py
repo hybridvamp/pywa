@@ -2,16 +2,13 @@
 
 import logging
 from contextlib import _GeneratorContextManager
-from typing import Any, TYPE_CHECKING, BinaryIO, Iterator
+from typing import Any, BinaryIO, Iterator
 
 import httpx
 
 import pywa
+
 from .errors import WhatsAppError
-
-if TYPE_CHECKING:
-    from .client import WhatsApp
-
 
 _logger = logging.getLogger(__name__)
 
@@ -76,7 +73,6 @@ class GraphAPI:
             )
             raise
         if res.status_code >= 400:
-            print("ERROR123", res.json())
             raise WhatsAppError.from_dict(error=res.json()["error"], response=res)
         return res.json()
 
@@ -109,6 +105,46 @@ class GraphAPI:
                 "grant_type": "client_credentials",
                 "client_id": app_id,
                 "client_secret": app_secret,
+            },
+            log_kwargs=False,
+        )
+
+    def get_business_access_token(
+        self,
+        app_id: int,
+        app_secret: str,
+        code: str,
+    ) -> dict[str, str]:
+        """
+        Exchange the Embedded Signup token code for a business token.
+
+        - Read more at `developers.facebook.com <https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-customers-as-a-tech-provider#step-1-exchange-the-token-code-for-a-business-token>`_.
+
+        Return example::
+
+            {
+                'business_token': 'xyzxyzxyz',
+                'token_type': 'bearer'
+            }
+
+
+        Args:
+            app_id: The ID of the app.
+            app_secret: The secret of the app.
+            code: The code `returned <https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/implementation#session-logging-message-event-listener>`_ by Embedded Signup when the customer successfully completed the flow.
+
+        Returns:
+            The access token and its type.
+
+        """
+
+        return self._make_request(
+            method="GET",
+            endpoint="/oauth/access_token",
+            params={
+                "client_id": app_id,
+                "client_secret": app_secret,
+                "code": code,
             },
             log_kwargs=False,
         )
@@ -341,6 +377,7 @@ class GraphAPI:
         media: bytes | str | BinaryIO | Iterator[bytes],
         mime_type: str,
         filename: str,
+        ttl_minutes: int | None = None,
     ) -> dict[str, str]:
         """
         Upload a media file to WhatsApp.
@@ -358,17 +395,22 @@ class GraphAPI:
             media: media bytes, file-like object, or bytes generator
             mime_type: The type of the media file
             filename: The name of the media file
+            ttl_minutes: If you want to override the default 1-hour TTL for No Storage-enabled business phone numbers
+
         Returns:
             A dict with the ID of the uploaded media file.
         """
+        files = {
+            "file": (filename, media, mime_type),
+            "messaging_product": (None, "whatsapp"),
+            "type": (None, mime_type),
+        }
+        if ttl_minutes is not None:
+            files["ttl_minutes"] = (None, str(ttl_minutes))
         return self._make_request(
             method="POST",
             endpoint=f"/{phone_id}/media",
-            files={
-                "file": (filename, media, mime_type),
-                "messaging_product": (None, "whatsapp"),
-                "type": (None, mime_type),
-            },
+            files=files,
             log_kwargs=False,
         )
 

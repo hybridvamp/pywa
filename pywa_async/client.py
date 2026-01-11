@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-
 """The WhatsApp Async client."""
 
 __all__ = ["WhatsApp"]
 
-import warnings
 import datetime
 import functools
 import hashlib
@@ -13,150 +11,150 @@ import json
 import logging
 import mimetypes
 import pathlib
+import warnings
 from types import ModuleType
 from typing import (
-    BinaryIO,
-    Iterable,
-    Literal,
     Any,
     AsyncGenerator,
-    Iterator,
     AsyncIterator,
+    BinaryIO,
+    Iterable,
+    Iterator,
+    Literal,
 )
 
 import httpx
 
 from pywa.client import (
-    WhatsApp as _WhatsApp,
     _DEFAULT_VERIFY_DELAY_SEC,
     _AuthenticationTemplates,
     _TemplateUpdate,
+)
+from pywa.client import (
+    WhatsApp as _WhatsApp,
 )  # noqa MUST BE IMPORTED FIRST
 from pywa.types.base_update import BaseUpdate
 from pywa.types.templates import BaseParams
+
 from . import _helpers as helpers
 from . import utils
 from .api import GraphAPIAsync
+from .handlers import (
+    CallbackButtonHandler,
+    CallbackSelectionHandler,
+    CallConnectHandler,
+    CallPermissionUpdateHandler,
+    CallStatusHandler,
+    CallTerminateHandler,
+    ChatOpenedHandler,
+    FlowCompletionHandler,
+    Handler,
+    IdentityChangeHandler,
+    MessageHandler,
+    MessageStatusHandler,
+    PhoneNumberChangeHandler,
+    TemplateCategoryUpdateHandler,
+    TemplateComponentsUpdateHandler,
+    TemplateQualityUpdateHandler,
+    TemplateStatusUpdateHandler,
+    UserMarketingPreferencesHandler,
+)
 from .listeners import _AsyncListeners
 from .server import Server
 from .types import (
+    BusinessPhoneNumber,
+    BusinessPhoneNumberSettings,
     BusinessProfile,
     Button,
-    URLButton,
-    VoiceCallButton,
+    CallbackButton,
+    CallbackData,
+    CallbackSelection,
+    CallConnect,
+    CallingSettings,
     CallPermissionRequestButton,
+    CallPermissionUpdate,
+    CallStatus,
+    CallTerminate,
+    ChatOpened,
+    Command,
     CommerceSettings,
     Contact,
+    FlowButton,
+    FlowCompletion,
+    FlowMetricGranularity,
+    FlowMetricName,
+    FlowRequest,
+    IdentityChange,
     Industry,
     MediaURL,
     Message,
-    ProductsSection,
-    SectionList,
-    Template,
-    FlowButton,
-    BusinessPhoneNumber,
-    Command,
-    CallbackData,
-    QRCode,
-    FlowMetricName,
-    FlowMetricGranularity,
-    FlowRequest,
-    Result,
-    Pagination,
-    User,
     MessageStatus,
-    CallbackButton,
-    CallbackSelection,
-    ChatOpened,
-    FlowCompletion,
-    UserMarketingPreferences,
-    TemplateStatusUpdate,
-    Image,
-    Video,
-    Document,
-    Sticker,
-    Audio,
-    BusinessPhoneNumberSettings,
-    CallConnect,
-    CallTerminate,
-    CallStatus,
-    TemplateCategoryUpdate,
-    TemplateQualityUpdate,
-    TemplateComponentsUpdate,
+    Pagination,
     PhoneNumberChange,
-    IdentityChange,
-    CallPermissionUpdate,
-    CallingSettings,
+    ProductsSection,
+    QRCode,
+    QRCodeImageType,
+    Result,
+    SectionList,
     StorageConfiguration,
+    Template,
+    TemplateCategoryUpdate,
+    TemplateComponentsUpdate,
+    TemplateQualityUpdate,
+    TemplateStatusUpdate,
+    URLButton,
+    User,
     UserIdentityChangeSettings,
+    UserMarketingPreferences,
+    VoiceCallButton,
 )
-from .handlers import (
-    Handler,
-    MessageHandler,
-    MessageStatusHandler,
-    CallbackButtonHandler,
-    CallbackSelectionHandler,
-    ChatOpenedHandler,
-    FlowCompletionHandler,
-    TemplateStatusUpdateHandler,
-    UserMarketingPreferencesHandler,
-    CallConnectHandler,
-    CallTerminateHandler,
-    CallStatusHandler,
-    CallPermissionUpdateHandler,
-    TemplateCategoryUpdateHandler,
-    TemplateQualityUpdateHandler,
-    TemplateComponentsUpdateHandler,
-    PhoneNumberChangeHandler,
-    IdentityChangeHandler,
-)
+from .types.calls import CallPermissions, SessionDescription
 from .types.flows import (
-    FlowCategory,
-    FlowJSON,
-    FlowDetails,
-    FlowAsset,
     CreatedFlow,
+    FlowAsset,
+    FlowCategory,
+    FlowDetails,
+    FlowJSON,
+    FlowJSONUpdateResult,
     MigrateFlowsResponse,
 )
-from .types.templates import (
-    TemplatesResult,
-    TemplateDetails,
-    TemplateCategory,
-    TemplateLanguage,
-    QualityScoreType,
-    TemplateBaseComponent,
-    ParamFormat,
-    TemplatesCompareResult,
-    MigrateTemplatesResult,
-    CreatedTemplate,
-    LibraryTemplate,
-    TemplateStatus,
-    TemplateUnpauseResult,
-    BaseOTPButton,
-    CreatedTemplates,
-    AuthenticationBody,
-    AuthenticationFooter,
-    Buttons,
-    UpdatedTemplate,
-)
-from .types.media import Media, UploadedBy
-from .types.flows import FlowJSONUpdateResult
-from .types.calls import CallPermissions, SessionDescription
+from .types.media import Media
 from .types.others import (
     InteractiveType,
+    SuccessResult,
     UsersBlockedResult,
     UsersUnblockedResult,
-    SuccessResult,
     WhatsAppBusinessAccount,
 )
 from .types.sent_update import (
-    SentMessage,
-    SentTemplate,
     InitiatedCall,
-    SentVoiceMessage,
     SentLocationRequest,
     SentMediaMessage,
+    SentMessage,
     SentReaction,
+    SentTemplate,
+    SentVoiceMessage,
+)
+from .types.templates import (
+    AuthenticationBody,
+    AuthenticationFooter,
+    BaseOTPButton,
+    Buttons,
+    CreatedTemplate,
+    CreatedTemplates,
+    LibraryTemplate,
+    MigrateTemplatesResult,
+    ParamFormat,
+    QualityScoreType,
+    TemplateBaseComponent,
+    TemplateCategory,
+    TemplateDetails,
+    TemplateLanguage,
+    TemplatesCompareResult,
+    TemplatesResult,
+    TemplateStatus,
+    TemplateUnpauseResult,
+    UpdatedTemplate,
 )
 from .utils import FastAPI, Flask
 
@@ -1620,6 +1618,7 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
         filename: str | None = None,
         dl_session: httpx.AsyncClient | None = None,
         *,
+        ttl: datetime.timedelta | int | None = None,
         media_type: Literal["image", "video", "audio", "document", "sticker"]
         | None = None,
         phone_id: str | int | None = None,
@@ -1653,6 +1652,7 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
             media: The media to upload (can be a URL, file path, bytes, bytes generator, file-like object, base64 or a :py:class:`~pywa.types.media.Media` instance).
             mime_type: The MIME type of the media.
             filename: The file name of the media.
+            ttl: Override the default 1-hour TTL for `No Storage-enabled <https://developers.facebook.com/documentation/business-messaging/whatsapp/no-storage>`_ business phone numbers. This value is in minutes from 1 hour (60) to 30 days (43200).
             dl_session: A httpx client to use when downloading the media from a URL (optional, for custom settings like proxies, headers, etc. If not provided, a new client will be created for the download).
             media_type: The type of the media (optional, for default mimetype and filename).
             phone_id: The phone ID to upload the media to (optional, if not provided, the client's phone ID will be used).
@@ -1666,6 +1666,9 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
             media_type=media_type,
             mime_type=mime_type,
             filename=filename,
+            ttl_minutes=int(ttl.total_seconds() // 60)
+            if isinstance(ttl, datetime.timedelta)
+            else ttl,
             wa=self,
             phone_id=helpers.resolve_arg(
                 wa=self,
@@ -2037,6 +2040,8 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
         if settings is not None:
             warnings.warn(
                 "The `settings` parameter is deprecated, use `calling`, `storage_configuration`, and `user_identity_change` instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
             calling = settings.calling
             storage_configuration = settings.storage_configuration
@@ -3455,7 +3460,7 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
     async def create_qr_code(
         self,
         prefilled_message: str,
-        image_type: Literal["PNG", "SVG"] = "PNG",
+        image_type: QRCodeImageType | Literal["PNG", "SVG"] = QRCodeImageType.PNG,
         *,
         phone_id: str | int | None = None,
     ) -> QRCode:
@@ -3466,25 +3471,28 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
 
         Args:
             prefilled_message: The prefilled message.
-            image_type: The type of the image (``PNG`` or ``SVG``. default: ``PNG``).
+            image_type: The type of the image (PNG or SVG. Default: PNG).
             phone_id: The phone ID to create the QR code for (optional, if not provided, the client's phone ID will be used).
 
         Returns:
             The QR code.
         """
+        phone_id = helpers.resolve_arg(wa=self, value=phone_id, method_arg="phone_id", client_arg="phone_id")
         return QRCode.from_dict(
-            await self.api.create_qr_code(
-                phone_id=helpers.resolve_arg(wa=self, value=phone_id, method_arg="phone_id", client_arg="phone_id"),
+            data=await self.api.create_qr_code(
+                phone_id=phone_id,
                 prefilled_message=prefilled_message,
                 generate_qr_image=image_type,
-            )
+            ),
+            client=self,
+            phone_id=phone_id
         )
 
     async def get_qr_code(
-        self,
+            self,
             code: str,
             *,
-            image_type: Literal["PNG", "SVG"] | None = None,
+            image_type: QRCodeImageType | Literal["PNG", "SVG"] | None = None,
             phone_id: str | int | None = None,
     ) -> QRCode | None:
         """
@@ -3498,19 +3506,22 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
         Returns:
             The QR code if found, otherwise None.
         """
-        qrs = (
-            await self.api.get_qr_code(
-                phone_id=helpers.resolve_arg(wa=self, value=phone_id, method_arg="phone_id", client_arg="phone_id"),
-                code=code,
-                fields=QRCode._api_fields(image_type)
-            )
-        )["data"]
-        return QRCode.from_dict(qrs[0]) if qrs else None
+        phone_id = helpers.resolve_arg(wa=self, value=phone_id, method_arg="phone_id", client_arg="phone_id")
+        qrs = (await self.api.get_qr_code(
+            phone_id=phone_id,
+            code=code,
+            fields=QRCode._api_fields(image_type)
+        ))["data"]
+        return QRCode.from_dict(
+            data=qrs[0],
+            client=self,
+            phone_id=phone_id,
+        ) if qrs else None
 
     async def get_qr_codes(
             self,
             *,
-            image_type: Literal["PNG", "SVG"] | None = None,
+            image_type: QRCodeImageType | Literal["PNG", "SVG"] | None = None,
             phone_id: str | int | None = None,
             pagination: Pagination | None = None,
     ) -> Result[QRCode]:
@@ -3525,14 +3536,19 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
         Returns:
             Result object containing the QR codes.
         """
+        phone_id = helpers.resolve_arg(wa=self, value=phone_id, method_arg="phone_id", client_arg="phone_id")
         return Result(
             wa=self,
             response=await self.api.get_qr_codes(
-                phone_id=helpers.resolve_arg(wa=self, value=phone_id, method_arg="phone_id", client_arg="phone_id"),
+                phone_id=phone_id,
                 fields=QRCode._api_fields(image_type),
                 pagination=pagination.to_dict() if pagination else None,
             ),
-            item_factory=QRCode.from_dict,
+            item_factory=functools.partial(
+                QRCode.from_dict,
+                client=self,
+                phone_id=phone_id,
+            ),
         )
 
     async def update_qr_code(
@@ -3553,12 +3569,15 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
         Returns:
             The updated QR code.
         """
+        phone_id = helpers.resolve_arg(wa=self, value=phone_id, method_arg="phone_id", client_arg="phone_id")
         return QRCode.from_dict(
-            await self.api.update_qr_code(
-                phone_id=helpers.resolve_arg(wa=self, value=phone_id, method_arg="phone_id", client_arg="phone_id"),
+            data=await self.api.update_qr_code(
+                phone_id=phone_id,
                 code=code,
                 prefilled_message=prefilled_message,
-            )
+            ),
+            client=self,
+            phone_id=phone_id
         )
 
     async def delete_qr_code(

@@ -2,8 +2,8 @@ import json
 import pathlib
 
 from pywa import WhatsApp
-from pywa_async import WhatsApp as WhatsAppAsync
 from pywa.types.base_update import BaseUpdate, RawUpdate
+from pywa_async import WhatsApp as WhatsAppAsync
 
 CLIENTS: dict[WhatsApp, dict[pathlib.Path, dict[str, BaseUpdate]]] = {
     WhatsApp(phone_id="1234567890", token="xyzxyzxyz", filter_updates=False): {},

@@ -1,12 +1,11 @@
 """The internal API for the WhatsApp client."""
 
 from contextlib import _AsyncGeneratorContextManager
-
-from pywa.api import *  # noqa MUST BE IMPORTED FIRST
-
 from typing import Any, AsyncIterator
 
 import httpx
+
+from pywa.api import *  # noqa MUST BE IMPORTED FIRST
 
 from .errors import WhatsAppError
 
@@ -99,6 +98,46 @@ class GraphAPIAsync(GraphAPI):
                 "grant_type": "client_credentials",
                 "client_id": app_id,
                 "client_secret": app_secret,
+            },
+            log_kwargs=False,
+        )
+
+    async def get_business_access_token(
+        self,
+        app_id: int,
+        app_secret: str,
+        code: str,
+    ) -> dict[str, str]:
+        """
+        Exchange the Embedded Signup token code for a business token.
+
+        - Read more at `developers.facebook.com <https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-customers-as-a-tech-provider#step-1-exchange-the-token-code-for-a-business-token>`_.
+
+        Return example::
+
+            {
+                'business_token': 'xyzxyzxyz',
+                'token_type': 'bearer'
+            }
+
+
+        Args:
+            app_id: The ID of the app.
+            app_secret: The secret of the app.
+            code: The code `returned <https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/implementation#session-logging-message-event-listener>`_ by Embedded Signup when the customer successfully completed the flow.
+
+        Returns:
+            The access token and its type.
+
+        """
+
+        return await self._make_request(
+            method="GET",
+            endpoint="/oauth/access_token",
+            params={
+                "client_id": app_id,
+                "client_secret": app_secret,
+                "code": code,
             },
             log_kwargs=False,
         )
@@ -333,6 +372,7 @@ class GraphAPIAsync(GraphAPI):
         media: bytes | str | BinaryIO | Iterator[bytes],
         mime_type: str,
         filename: str,
+        ttl_minutes: int | None = None,
     ) -> dict[str, str]:
         """
         Upload a media file to WhatsApp.
@@ -350,17 +390,22 @@ class GraphAPIAsync(GraphAPI):
             media: media bytes, file-like object, or bytes generator
             mime_type: The type of the media file
             filename: The name of the media file
+            ttl_minutes: If you want to override the default 1-hour TTL for No Storage-enabled business phone numbers
+
         Returns:
             A dict with the ID of the uploaded media file.
         """
+        files = {
+            "file": (filename, media, mime_type),
+            "messaging_product": (None, "whatsapp"),
+            "type": (None, mime_type),
+        }
+        if ttl_minutes is not None:
+            files["ttl_minutes"] = (None, str(ttl_minutes))
         return await self._make_request(
             method="POST",
             endpoint=f"/{phone_id}/media",
-            files={
-                "file": (filename, media, mime_type),
-                "messaging_product": (None, "whatsapp"),
-                "type": (None, mime_type),
-            },
+            files=files,
             log_kwargs=False,
         )
 
