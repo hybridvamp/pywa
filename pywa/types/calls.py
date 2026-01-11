@@ -887,6 +887,23 @@ class STRPKeyExchangeProtocol(utils.StrEnum):
     UNKNOWN = "UNKNOWN"
 
 
+@dataclasses.dataclass(slots=True, kw_only=True, frozen=True)
+class CallIcons:
+    """
+    Configure whether WhatsApp call button icon displays for users when chatting with the business.
+
+    Attributes:
+        restrict_to_user_countries: Restrict the visibility of call icons to these countries. For example if you restrict it to “US,” then it will apply to all the people who have a US registered phone number. These people could be physically located inside or outside of the USA.
+    """
+
+    restrict_to_user_countries: list[str]
+
+    def to_dict(self) -> dict:
+        return {
+            "restrict_to_user_countries": self.restrict_to_user_countries,
+        }
+
+
 @dataclasses.dataclass(slots=True, kw_only=True)
 class CallingSettings:
     """
@@ -897,6 +914,7 @@ class CallingSettings:
     Attributes:
         status: Enable or disable the Calling API for the given business phone number.
         call_icon_visibility: Configure whether the WhatsApp call button icon displays for users when chatting with the business. See `Call Icon Visibility <https://developers.facebook.com/docs/whatsapp/cloud-api/calling/call-settings#parameter-details>`_ for more details.
+        call_icons: Configure the visibility of call icons based on user countries.
         call_hours: Allows you to specify and trigger call settings for incoming calls based on your timezone, business operating hours, and holiday schedules.
         callback_permission_status: Configure whether a WhatsApp user is prompted with a call permission request after calling your business.
         sip: Configure call signaling via signal initiation protocol (SIP). Note: When SIP is enabled, you cannot use calling related endpoints and will not receive calling related webhooks.
@@ -904,6 +922,7 @@ class CallingSettings:
 
     status: CallingSettingsStatus | None = None
     call_icon_visibility: CallIconVisibility | None = None
+    call_icons: CallIcons | None = None
     call_hours: CallHours | None = None
     callback_permission_status: CallbackPermissionStatus | None = None
     srtp_key_exchange_protocol: STRPKeyExchangeProtocol | None = None
@@ -915,6 +934,8 @@ class CallingSettings:
             data["status"] = self.status.value
         if self.call_icon_visibility:
             data["call_icon_visibility"] = self.call_icon_visibility.value
+        if self.call_icons:
+            data["call_icons"] = self.call_icons.to_dict()
         if self.callback_permission_status:
             data["callback_permission_status"] = self.callback_permission_status.value
         if self.call_hours:
@@ -931,6 +952,13 @@ class CallingSettings:
             status=CallingSettingsStatus(data["status"]) if "status" in data else None,
             call_icon_visibility=CallIconVisibility(data["call_icon_visibility"])
             if "call_icon_visibility" in data
+            else None,
+            call_icons=CallIcons(
+                restrict_to_user_countries=data["call_icons"][
+                    "restrict_to_user_countries"
+                ]
+            )
+            if "call_icons" in data
             else None,
             call_hours=CallHours.from_dict(data["call_hours"])
             if "call_hours" in data
@@ -985,13 +1013,17 @@ class BusinessPhoneNumberSettings(utils.APIObject):
 
     def to_dict(self) -> dict:
         return {
-            "calling": self.calling.to_dict() if self.calling else None,
-            "storage_configuration": dataclasses.asdict(self.storage_configuration)
-            if self.storage_configuration
-            else None,
-            "user_identity_change": self.user_identity_change.to_dict()
-            if self.user_identity_change
-            else None,
+            k: v
+            for k, v in {
+                "calling": self.calling.to_dict() if self.calling else None,
+                "storage_configuration": dataclasses.asdict(self.storage_configuration)
+                if self.storage_configuration
+                else None,
+                "user_identity_change": self.user_identity_change.to_dict()
+                if self.user_identity_change
+                else None,
+            }.items()
+            if v is not None
         }
 
 

@@ -4,7 +4,16 @@
 > NOTE: pywa follows the [semver](https://semver.org/) versioning standard.
 
 
-#### 3.6.1 (2025-12-11) **Latest**
+#### 3.7.0 (2026-01-11) **Latest**
+
+- [media] allow to override the default 1-hour TTL for `No Storage-enabled` business phone numbers
+- [types] add `QRCodeImageType` and enhance `QRCode` methods for image handling
+- [templates] adding `product_extensions` and `text_formatting_optimization` to `CreativeFeaturesSpec`
+- [api] add method to exchange Embedded Signup token for business access token
+- [ci] update GitHub Actions workflows for improved publishing and testing
+- [core] support Python 3.14
+
+#### 3.6.1 (2025-12-11)
 
 - [helpers] fix media URL in template param
 - [tests] test resolve_media_param
