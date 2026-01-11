@@ -2,7 +2,7 @@ name: Publish Python Package to PyPI
 
 on:
   workflow_run:
-    workflows: [ "tests" ]
+    workflows: [ "CI" ]
     types: [ completed ]
 
 jobs:
