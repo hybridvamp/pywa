@@ -4,7 +4,7 @@ from types import ModuleType
 
 import pytest
 
-from pywa import handlers, types, WhatsApp, filters
+from pywa import WhatsApp, filters, handlers, types
 from pywa.handlers import FlowRequestHandler, _flow_request_handler_attr
 from pywa.types import Message
 from pywa_async import WhatsApp as WhatsAppAsync

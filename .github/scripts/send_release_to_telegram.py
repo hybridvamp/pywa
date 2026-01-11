@@ -1,6 +1,6 @@
+import asyncio
 import logging
 import os
-import asyncio
 
 from pyrogram import Client, types
 

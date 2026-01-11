@@ -1,6 +1,5 @@
 from pywa import errors
 
-
 exceptions: dict[type[errors.WhatsAppError], dict] = {
     errors.MediaUploadError: {
         "code": 131053,

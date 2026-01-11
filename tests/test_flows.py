@@ -7,30 +7,30 @@ from typing import Callable
 
 import pytest
 
-from pywa import WhatsApp, handlers, utils, filters
+from pywa import WhatsApp, filters, handlers, utils
 from pywa.handlers import FlowCompletionHandler
 from pywa.types.flows import (
-    FlowJSON,
-    Screen,
-    Layout,
-    Form,
-    TextInput,
-    DataSource,
-    ScreenDataRef,
     ComponentRef,
-    ScreenData,
-    FlowResponse,
+    DataSource,
+    FlowJSON,
+    FlowPreview,
     FlowRequest,
     FlowRequestActionType,
-    _FlowJSONEncoder,
-    Ref,
+    FlowResponse,
+    FlowStr,
+    Form,
+    Layout,
+    NavigateAction,
+    NavigationItem,
     NavigationItemEnd,
     NavigationItemMainContent,
-    NavigationItem,
-    NavigateAction,
     Next,
-    FlowStr,
-    FlowPreview,
+    Ref,
+    Screen,
+    ScreenData,
+    ScreenDataRef,
+    TextInput,
+    _FlowJSONEncoder,
 )
 from pywa.utils import Version
 

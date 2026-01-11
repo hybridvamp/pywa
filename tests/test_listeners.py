@@ -1,17 +1,18 @@
 import asyncio
-
-import pytest
 import threading
 import time
 
-from pywa import WhatsApp as WhatsAppSync, filters
-from pywa_async import WhatsApp as WhatsAppAsync
+import pytest
+
+from pywa import WhatsApp as WhatsAppSync
+from pywa import filters
 from pywa.listeners import (
-    ListenerTimeout,
     ListenerCanceled,
     ListenerStopped,
+    ListenerTimeout,
     UserUpdateListenerIdentifier,
 )
+from pywa_async import WhatsApp as WhatsAppAsync
 
 
 class DummyUpdate:

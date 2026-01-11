@@ -4,15 +4,15 @@ from typing import Callable, TypeVar, cast
 import pytest
 
 from pywa import filters as fil
-from pywa.errors import WhatsAppError, MediaUploadError
+from pywa.errors import MediaUploadError, WhatsAppError
 from pywa.filters import Filter
 from pywa.types import (
-    Message,
-    CallbackSelection,
     CallbackButton,
+    CallbackSelection,
+    Message,
     MessageStatus,
-    ReplyToMessage,
     ReferredProduct,
+    ReplyToMessage,
 )
 from pywa.types.base_update import BaseUpdate
 from tests.common import CLIENTS

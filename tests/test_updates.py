@@ -1,19 +1,20 @@
 from typing import Any, Callable
 
 from pywa.types import (
-    MessageType,
-    MessageStatusType,
     MarketingPreference,
+    MessageStatusType,
+    MessageType,
 )
 from pywa.types.calls import (
-    CallEvent,
     CallDirection,
+    CallEvent,
     CallPermissionResponse,
     CallPermissionResponseSource,
 )
-from pywa.types.media import Image, Video, Document, Audio
+from pywa.types.media import Audio, Document, Image, Video
 from pywa.types.system import SystemType
-from pywa.types.templates import TemplateStatus, TemplateCategory, QualityScoreType
+from pywa.types.templates import QualityScoreType, TemplateCategory, TemplateStatus
+
 from .common import CLIENTS
 
 # {update_file: {update_name: [test_funcs]}}

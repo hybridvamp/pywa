@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import Mock
 
+import pytest
+
 from pywa import utils as pywa_utils
-from pywa.server import Server, StopHandling, ContinueHandling
+from pywa.server import ContinueHandling, Server, StopHandling
 
 
 def test_webhook_updates_validator():

@@ -2,7 +2,6 @@ import datetime
 
 from pywa.types.flows import *  # noqa: F403
 
-
 radio_buttons_with_pics = FlowJSON(
     version="5.0",
     screens=[
