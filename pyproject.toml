@@ -9,6 +9,7 @@ dependencies = { file = "requirements.txt" }
 
 [tool.setuptools.packages.find]
 include = ["pywa*"]
+exclude = ["tests*", "docs*"]
 
 [tool.setuptools.package-data]
 pywa = ["py.typed"]
@@ -16,7 +17,6 @@ pywa = ["py.typed"]
 [project]
 name = "pywa"
 description = "🚀 Build WhatsApp Bots in Python • Fast, Effortless, Powerful"
-readme = "README.md"
 dynamic = ["version", "readme", "dependencies"]
 license = "MIT"
 license-files = [
