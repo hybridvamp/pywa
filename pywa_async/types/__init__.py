@@ -50,6 +50,8 @@ from .others import (
     Pagination,
     StorageConfiguration,
     UserIdentityChangeSettings,
+    Unsupported,
+
 )
 from .templates import (
     Template,
