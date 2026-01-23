@@ -3868,6 +3868,10 @@ def _validate_params(
             )
             if carousel_param is None:
                 raise ValueError("Missing parameters for Carousel component.")
+            if len(carousel_param.cards) != len(comp.cards):
+                raise ValueError(
+                    f"Expected {len(comp.cards)} cards in Carousel parameters, but got {len(carousel_param.cards)}."
+                )
             for i, card in enumerate(comp.cards):
                 card_param = next(
                     (cp for cp in carousel_param.cards if cp.index == i), None

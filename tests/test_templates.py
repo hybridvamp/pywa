@@ -712,6 +712,23 @@ def test_validate_template_params():
             BodyText(text="Hello World!"),
         ],
     ).validate_params(params=None)
+
+    Template(
+        name="test_template_without_real_params",
+        language=TemplateLanguage.ENGLISH_US,
+        category=TemplateCategory.MARKETING,
+        components=[
+            {"type": "new_component"},
+        ],
+    ).validate_params(
+        params=[
+            TapTargetConfiguration(
+                title="PyWa Docs", url="https://pywa.readthedocs.io/"
+            ),
+            {"type": "new_type", "parameters": []},
+        ]
+    )
+
     with pytest.raises(
         ValueError,
         match="Template does not expect any parameters, but some were provided.",
@@ -727,5 +744,183 @@ def test_validate_template_params():
         t.validate_params(
             [
                 BodyText.params("Extra Param"),
+            ]
+        )
+
+    with pytest.raises(
+        ValueError,
+        match=r"Missing parameter for button #0 \(QuickReplyButton\)",
+    ):
+        t = Template(
+            name="test_template_with_button_not_in_index",
+            language=TemplateLanguage.ENGLISH_US,
+            category=TemplateCategory.MARKETING,
+            components=[
+                Buttons(buttons=[QuickReplyButton(text="Click Me")]),
+            ],
+        )
+        t.validate_params(params=None)
+
+    with pytest.raises(
+        ValueError,
+        match="Missing parameters for: BodyText$",
+    ):
+        t = Template(
+            name="test_template_with_body_param",
+            language=TemplateLanguage.ENGLISH_US,
+            category=TemplateCategory.MARKETING,
+            components=[
+                BodyText(
+                    "Hello {{name}}, welcome to our service!",
+                    name="User",
+                ),
+            ],
+        )
+        t.validate_params(params=None)
+
+    with pytest.raises(
+        ValueError,
+        match="Missing parameters for Carousel component.",
+    ):
+        t = Template(
+            name="test_template_with_carousel",
+            language=TemplateLanguage.ENGLISH_US,
+            category=TemplateCategory.MARKETING,
+            components=[
+                Carousel(
+                    cards=[
+                        CarouselCard(
+                            components=[
+                                BodyText(
+                                    "Hello {{name}}",
+                                    name="User",
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ],
+        )
+        t.validate_params(params=None)
+
+    with pytest.raises(
+        ValueError, match="Expected 2 cards in Carousel parameters, but got 1."
+    ):
+        t = Template(
+            name="test_template_with_carousel_card_param",
+            language=TemplateLanguage.ENGLISH_US,
+            category=TemplateCategory.MARKETING,
+            components=[
+                Carousel(
+                    cards=[
+                        CarouselCard(
+                            components=[
+                                BodyText(
+                                    "Hello {{name}}",
+                                    name="User",
+                                )
+                            ]
+                        )
+                        for _ in range(2)
+                    ]
+                )
+            ],
+        )
+        t.validate_params(
+            params=[
+                Carousel.params(
+                    cards=[
+                        CarouselCard.params(
+                            index=0,
+                            params=[
+                                BodyText.params(name="Alice"),
+                            ],
+                        )
+                    ]
+                )
+            ]
+        )
+
+    with pytest.raises(
+        ValueError, match="In Carousel card #0: Missing parameters for: BodyText"
+    ):
+        t = Template(
+            name="test_template_with_carousel_card_param_missing",
+            language=TemplateLanguage.ENGLISH_US,
+            category=TemplateCategory.MARKETING,
+            components=[
+                Carousel(
+                    cards=[
+                        CarouselCard(
+                            components=[
+                                BodyText(
+                                    "Hello {{name}}",
+                                    name="User",
+                                )
+                            ]
+                        )
+                        for _ in range(2)
+                    ]
+                )
+            ],
+        )
+        t.validate_params(
+            params=[
+                Carousel.params(
+                    cards=[
+                        CarouselCard.params(
+                            index=0,
+                            params=[
+                                # Missing BodyText params
+                            ],
+                        ),
+                        CarouselCard.params(
+                            index=1,
+                            params=[
+                                BodyText.params(name="Bob"),
+                            ],
+                        ),
+                    ]
+                )
+            ]
+        )
+
+    with pytest.raises(
+        ValueError,
+        match="Missing parameters for: HeaderText, BodyText$",
+    ):
+        t = Template(
+            name="test_template_with_header_and_body_params",
+            language=TemplateLanguage.ENGLISH_US,
+            category=TemplateCategory.MARKETING,
+            components=[
+                HeaderText(
+                    "Welcome {{user}}",
+                    user="Customer",
+                ),
+                BodyText(
+                    "Your order {{order_id}} is confirmed.",
+                    order_id="12345",
+                ),
+            ],
+        )
+        t.validate_params(params=None)
+
+    with pytest.raises(
+        ValueError,
+        match="Extra parameters provided: BodyText, QuickReplyButton$",
+    ):
+        t = Template(
+            name="test_template_no_params_but_extra_provided",
+            language=TemplateLanguage.ENGLISH_US,
+            category=TemplateCategory.MARKETING,
+            components=[
+                HeaderText(text="Welcome {{user}}", user="Customer"),
+            ],
+        )
+        t.validate_params(
+            params=[
+                BodyText.params("Extra Body"),
+                QuickReplyButton.params(callback_data="extra", index=0),
             ]
         )
