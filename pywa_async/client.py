@@ -2536,10 +2536,11 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
     async def send_template(
         self,
         to: str | int,
-        name: str,
-        language: TemplateLanguage,
+        name: str | None = None,
+        language: TemplateLanguage | None = None,
         params: list[BaseParams | dict] | None = None,
         *,
+        template: Template | None = None,
         use_mm_lite_api: bool = False,
         message_activity_sharing: bool | None = None,
         reply_to_message_id: str | None = None,
@@ -2595,8 +2596,7 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
 
             await wa.send_template(
                 to='1234567890',
-                name=t.name,
-                language=t.language,
+                template=t, # provide the template object to validate parameters against
                 params=[
                     header.params(sale_name='Summer Sale'),
                     body.params(
@@ -2611,8 +2611,9 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
 
         Args:
             to: The phone ID of the WhatsApp user.
-            name: The name of the template to send.
-            language: The language of the template to send.
+            name: The name of the template to send (optional when ``template`` is provided).
+            language: The language of the template to send (optional when ``template`` is provided).
+            template: The template object to validate the parameters against (optional, if not provided, ``name`` and ``language`` must be provided).
             params: The parameters to fill in the template.
             use_mm_lite_api: Whether to use `Marketing Messages Lite API <https://developers.facebook.com/docs/whatsapp/marketing-messages-lite-api>`_ (optional, default: False).
             message_activity_sharing: Whether to share message activities (e.g. message read) for that specific marketing message to Meta to help optimize marketing messages (optional, only if ``use_mm_lite_api`` is True).
@@ -2624,6 +2625,15 @@ class WhatsApp(Server, _AsyncListeners, _WhatsApp):
         sender = helpers.resolve_arg(
             wa=self, value=sender, method_arg="sender", client_arg="phone_id"
         )
+        name = name or (template.name if template else None)
+        language = language or (template.language if template else None)
+        if not name or not language:
+            raise ValueError(
+                "Either provide both `name` and `language`, or provide a `template`."
+            )
+        if template:
+            template.validate_params(params)
+
         if params is not None:
             await helpers.upload_template_media_params(
                 wa=self,

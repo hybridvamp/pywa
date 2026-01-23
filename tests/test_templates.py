@@ -72,6 +72,7 @@ def test_template_text_examples_positionals():
     assert h.text == "Hi {{1}}, this is a text template number {{2}}"
     assert h.example == ("David", 1)
     assert h.preview() == "Hi David, this is a text template number 1"
+    assert h.preview("David2") == "Hi David2, this is a text template number 1"
     assert h.params("John", 100).to_dict() == {
         "type": "HEADER",
         "parameters": [
@@ -82,7 +83,7 @@ def test_template_text_examples_positionals():
     assert h.param_format == ParamFormat.POSITIONAL
     with pytest.raises(
         ValueError,
-        match="HeaderText does not support named parameters when text is positional.",
+        match="HeaderText does not accept named parameters when using positional format.",
     ):
         h.params(named="John")
     with pytest.raises(
@@ -93,7 +94,7 @@ def test_template_text_examples_positionals():
 
     with pytest.raises(
         ValueError,
-        match="HeaderText does not support parameters, as it has no example.",
+        match="HeaderText does not accept parameters as it was initialized without examples.",
     ):
         HeaderText("Hi").params("John")
 
@@ -117,6 +118,7 @@ def test_template_text_examples_named():
     assert b.text == "Hi {{name}}, this is a text template number {{number}}"
     assert b.example == {"name": "David", "number": 1}
     assert b.preview() == "Hi David, this is a text template number 1"
+    assert b.preview(number=2) == "Hi David, this is a text template number 2"
     assert b.params(name="John", number=100).to_dict() == {
         "type": "BODY",
         "parameters": [
@@ -127,7 +129,7 @@ def test_template_text_examples_named():
     assert b.param_format == ParamFormat.NAMED
     with pytest.raises(
         ValueError,
-        match="BodyText does not support positional parameters when text is named.",
+        match="BodyText does not accept positional parameters when using named format.",
     ):
         b.params("John")
     with pytest.raises(
@@ -141,7 +143,7 @@ def test_template_text_examples_named():
 
     with pytest.raises(
         ValueError,
-        match="BodyText does not support parameters, as it has no example.",
+        match="BodyText does not accept parameters as it was initialized without examples.",
     ):
         BodyText("Hi").params(name="John")
 
@@ -699,3 +701,31 @@ def test_comp_and_params_to_dict():
             }
         ],
     }
+
+
+def test_validate_template_params():
+    Template(
+        name="test_template_no_params",
+        language=TemplateLanguage.ENGLISH_US,
+        category=TemplateCategory.MARKETING,
+        components=[
+            BodyText(text="Hello World!"),
+        ],
+    ).validate_params(params=None)
+    with pytest.raises(
+        ValueError,
+        match="Template does not expect any parameters, but some were provided.",
+    ):
+        t = Template(
+            name="test_template_no_params",
+            language=TemplateLanguage.ENGLISH_US,
+            category=TemplateCategory.MARKETING,
+            components=[
+                BodyText(text="Hello World!"),
+            ],
+        )
+        t.validate_params(
+            [
+                BodyText.params("Extra Param"),
+            ]
+        )
