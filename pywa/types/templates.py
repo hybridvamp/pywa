@@ -3246,7 +3246,7 @@ class Carousel(TemplateBaseComponent):
         ...         params=[
         ...             hi1.params(image="https://cdn.com/card1.jpg"),
         ...             qr1.params(callback_data="unsubscribe_card1", index=0),
-        ...             u1.params(url_variable="card1", index=0),
+        ...             u1.params(url_variable="card1", index=1),
         ...         ],
         ...     ),
         ...     card2.params(
@@ -3254,7 +3254,7 @@ class Carousel(TemplateBaseComponent):
         ...         params=[
         ...             hi2.params(image="https://cdn.com/card2.jpg"),
         ...             qr2.params(callback_data="unsubscribe_card2", index=0),
-        ...             u2.params(url_variable="card2", index=0),
+        ...             u2.params(url_variable="card2", index=1),
         ...         ],
         ...     ),
         ... ])
