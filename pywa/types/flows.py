@@ -1644,14 +1644,14 @@ class Component(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def type(self) -> TemplateComponentType: ...
+    def type(self) -> FlowComponentType: ...
 
     @property
     @abc.abstractmethod
     def visible(self) -> bool | str | Condition | None: ...
 
 
-class TemplateComponentType(utils.StrEnum):
+class FlowComponentType(utils.StrEnum):
     """Internal component types"""
 
     _check_value = None
@@ -2104,8 +2104,8 @@ class Form(Component):
          the error message instead of setting this attribute. Read more at `developers.facebook.com <https://developers.facebook.com/docs/whatsapp/flows/reference/flowjson#form-configuration>`_).
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.FORM, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.FORM, init=False, repr=False
     )
     visible: None = dataclasses.field(default=None, init=False, repr=False)
     name: str
@@ -2288,8 +2288,8 @@ class TextHeading(TextComponent):
         visible: Whether the heading is visible or not. Default to ``True``,
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.TEXT_HEADING, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.TEXT_HEADING, init=False, repr=False
     )
     text: str | FlowStr | ScreenDataRef[str] | ComponentRef[str]
     visible: bool | Condition | ScreenDataRef[bool] | ComponentRef[bool] | None = None
@@ -2311,8 +2311,8 @@ class TextSubheading(TextComponent):
         visible: Whether the subheading is visible or not. Default to ``True``,
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.TEXT_SUBHEADING, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.TEXT_SUBHEADING, init=False, repr=False
     )
     text: str | FlowStr | ScreenDataRef[str] | ComponentRef[str]
     visible: bool | Condition | ScreenDataRef[bool] | ComponentRef[bool] | None = None
@@ -2342,8 +2342,8 @@ class TextBody(TextComponent):
         visible: Whether the body is visible or not. Default to ``True``,
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.TEXT_BODY, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.TEXT_BODY, init=False, repr=False
     )
     text: (
         str
@@ -2385,8 +2385,8 @@ class TextCaption(TextComponent):
         visible: Whether the caption is visible or not. Default to ``True``,
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.TEXT_CAPTION, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.TEXT_CAPTION, init=False, repr=False
     )
     text: (
         str
@@ -2442,8 +2442,8 @@ class RichText(TextComponent):
         visible: Whether the caption is visible or not. Default to ``True``,
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.RICH_TEXT, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.RICH_TEXT, init=False, repr=False
     )
     text: (
         str
@@ -2554,8 +2554,8 @@ class TextInput(TextEntryComponent):
         error_message: The error message of the text input.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.TEXT_INPUT, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.TEXT_INPUT, init=False, repr=False
     )
     name: str
     label: str | FlowStr | ScreenDataRef[str] | ComponentRef[str]
@@ -2605,8 +2605,8 @@ class TextArea(TextEntryComponent):
         error_message: The error message of the text area.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.TEXT_AREA, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.TEXT_AREA, init=False, repr=False
     )
     name: str
     label: str | FlowStr | ScreenDataRef[str] | ComponentRef[str]
@@ -2680,8 +2680,8 @@ class CheckboxGroup(FormComponent[list[str]]):
         on_unselect_action: The action to perform when an item is unselected. Added in v6.0.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.CHECKBOX_GROUP, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.CHECKBOX_GROUP, init=False, repr=False
     )
     name: str
     data_source: list[DataSource] | ScreenDataRef[list[DataSource]]
@@ -2734,8 +2734,8 @@ class RadioButtonsGroup(FormComponent[str]):
         on_unselect_action: The action to perform when an item is unselected. Added in v6.0.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.RADIO_BUTTONS_GROUP, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.RADIO_BUTTONS_GROUP, init=False, repr=False
     )
     name: str
     data_source: list[DataSource] | ScreenDataRef[list[DataSource]]
@@ -2784,8 +2784,8 @@ class Dropdown(FormComponent[str]):
         on_unselect_action: The action to perform when an item is unselected. Added in v6.0.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.DROPDOWN, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.DROPDOWN, init=False, repr=False
     )
     name: str
     label: str | FlowStr | ScreenDataRef[str] | ComponentRef[str]
@@ -2837,8 +2837,8 @@ class ChipsSelector(FormComponent[list[str]]):
         on_unselect_action: The action to perform when an item is unselected. if not set, the on_select_action will handle both selection and unselection events. Added in v7.1.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.CHIPS_SELECTOR, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.CHIPS_SELECTOR, init=False, repr=False
     )
     name: str
     data_source: list[DataSource] | ScreenDataRef[list[DataSource]]
@@ -2870,8 +2870,8 @@ class Footer(Component):
         enabled: Whether the footer is enabled or not. Default to ``True``.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.FOOTER, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.FOOTER, init=False, repr=False
     )
     visible: None = dataclasses.field(default=None, init=False, repr=False)
     label: str | FlowStr | ScreenDataRef[str] | ComponentRef[str]
@@ -2909,8 +2909,8 @@ class OptIn(FormComponent[bool]):
         on_click_action: The action to perform when the opt in is clicked.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.OPT_IN, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.OPT_IN, init=False, repr=False
     )
     enabled: None = dataclasses.field(default=None, init=False, repr=False)
     name: str
@@ -2948,8 +2948,8 @@ class EmbeddedLink(Component):
         visible: Whether the embedded link is visible or not. Default to ``True``.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.EMBEDDED_LINK, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.EMBEDDED_LINK, init=False, repr=False
     )
     text: str | FlowStr | ScreenDataRef[str] | ComponentRef[str]
     on_click_action: (
@@ -2997,8 +2997,8 @@ class NavigationList(Component):
         on_click_action: The action to perform when an item is clicked (can be defined at the component level or in each :class:`NavigationItem`).
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.NAVIGATION_LIST, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.NAVIGATION_LIST, init=False, repr=False
     )
     visible: None = dataclasses.field(default=None, init=False, repr=False)
     name: str
@@ -3134,8 +3134,8 @@ class DatePicker(FormComponent[str]):
         on_select_action: The action to perform when a date is selected.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.DATE_PICKER, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.DATE_PICKER, init=False, repr=False
     )
     name: str
     label: str | FlowStr | ScreenDataRef[str] | ComponentRef[str]
@@ -3287,8 +3287,8 @@ class CalendarPicker(FormComponent[str]):
         on_select_action: The action to perform when a date is selected.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.CALENDAR_PICKER, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.CALENDAR_PICKER, init=False, repr=False
     )
     name: str
     title: str | FlowStr | ScreenDataRef[str] | ComponentRef[str] | None = None
@@ -3416,8 +3416,8 @@ class Image(Component):
         visible: Whether the image is visible or not. Default to ``True``.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.IMAGE, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.IMAGE, init=False, repr=False
     )
     src: str | ScreenDataRef[str] | ComponentRef[str]
     width: int | ScreenDataRef[int] | None = None
@@ -3480,8 +3480,8 @@ class ImageCarousel(Component):
         visible: Whether the image carousel is visible or not. Default to ``True``.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.IMAGE_CAROUSEL, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.IMAGE_CAROUSEL, init=False, repr=False
     )
     images: list[ImageCarouselItem] | ScreenDataRef[list[ImageCarouselItem]]
     aspect_ratio: str | ScreenDataRef[str] | ComponentRef[str] | None = None
@@ -3546,8 +3546,8 @@ class PhotoPicker(FormComponent):
 
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.PHOTO_PICKER, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.PHOTO_PICKER, init=False, repr=False
     )
     required: None = dataclasses.field(default=None, init=False, repr=False)
     init_value: None = dataclasses.field(default=None, init=False, repr=False)
@@ -3601,8 +3601,8 @@ class DocumentPicker(FormComponent):
         error_message: The error message of the document picker.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.DOCUMENT_PICKER, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.DOCUMENT_PICKER, init=False, repr=False
     )
     required: None = dataclasses.field(default=None, init=False, repr=False)
     init_value: None = dataclasses.field(default=None, init=False, repr=False)
@@ -3658,8 +3658,8 @@ class If(Component):
 
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.IF, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.IF, init=False, repr=False
     )
     visible: None = dataclasses.field(default=None, init=False, repr=False)
     condition: Condition | str
@@ -3696,8 +3696,8 @@ class Switch(Component):
         cases: The components that will be rendered based on the value. {case: [components, ...], ...}.
     """
 
-    type: TemplateComponentType = dataclasses.field(
-        default=TemplateComponentType.SWITCH, init=False, repr=False
+    type: FlowComponentType = dataclasses.field(
+        default=FlowComponentType.SWITCH, init=False, repr=False
     )
     visible: None = dataclasses.field(default=None, init=False, repr=False)
     value: str | ScreenDataRef | ComponentRef

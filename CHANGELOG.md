@@ -4,7 +4,12 @@
 > NOTE: pywa follows the [semver](https://semver.org/) versioning standard.
 
 
-#### 3.7.0 (2026-01-11) **Latest**
+#### 3.8.0 (2026-01-23) **Latest**
+
+- [templates] enhance template parameters validation and improve component handling
+- [types] update `BusinessProfile` to allow optional 'about' field
+
+#### 3.7.0 (2026-01-11)
 
 - [media] allow to override the default 1-hour TTL for `No Storage-enabled` business phone numbers
 - [types] add `QRCodeImageType` and enhance `QRCode` methods for image handling

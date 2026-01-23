@@ -722,7 +722,7 @@ class BusinessProfile(utils.APIObject):
 
     _override_api_fields: ClassVar = {"industry": "vertical"}
 
-    about: str
+    about: str | None
     address: str | None
     industry: Industry
     description: str | None
@@ -733,7 +733,7 @@ class BusinessProfile(utils.APIObject):
     @classmethod
     def from_dict(cls, data: dict) -> BusinessProfile:
         return cls(
-            about=data["about"],
+            about=data.get("about"),
             address=data.get("address"),
             industry=Industry(data["vertical"]),
             description=data.get("description"),

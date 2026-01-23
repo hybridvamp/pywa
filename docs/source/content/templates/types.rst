@@ -23,7 +23,7 @@ Template Types
 .. autoclass:: ParamFormat()
 
 .. autoclass:: HeaderText()
-    :members: preview, params
+    :members: preview, params, validate
 .. autoclass:: HeaderImage()
     :members: params
 .. autoclass:: HeaderVideo()
@@ -38,7 +38,7 @@ Template Types
     :members: params
 
 .. autoclass:: BodyText()
-    :members: preview, params, library_input
+    :members: preview, params, library_input, validate
 
 .. autoclass:: DateTime()
 .. autoclass:: Currency()

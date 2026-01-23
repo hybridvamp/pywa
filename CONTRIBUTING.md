@@ -23,7 +23,8 @@ Thank you for considering contributing to pywa! We appreciate your time and effo
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
-   pip install -r requirements-dev.txt -r docs/requirements.txt
+   pip install -e ".[dev]"
+   # for docs changes: pip install -e ".[dev,docs]"
    ```
 
 3. Activate [pre-commit](https://pre-commit.com/) to ensure code quality:

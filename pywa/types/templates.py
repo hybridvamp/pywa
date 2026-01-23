@@ -74,7 +74,15 @@ import logging
 import pathlib
 import re
 import warnings
-from typing import TYPE_CHECKING, AsyncIterator, BinaryIO, Iterator, Literal, cast
+from typing import (
+    TYPE_CHECKING,
+    AsyncIterator,
+    BinaryIO,
+    Iterator,
+    Literal,
+    NoReturn,
+    cast,
+)
 
 from .. import _helpers as helpers
 from .. import utils
@@ -957,6 +965,8 @@ class TemplateBaseComponent(abc.ABC):
 class BaseParams(abc.ABC):
     """Base class for template component parameters."""
 
+    comp_name: str
+
     @abc.abstractmethod
     def to_dict(self) -> dict: ...
 
@@ -974,6 +984,7 @@ class TapTargetConfiguration(BaseParams):
         url: The URL to open.
     """
 
+    _real_param = False
     title: str
     url: str
 
@@ -1061,7 +1072,7 @@ class DateTime(_TextParam):
 class _BaseTextComponent:
     type: Literal[ComponentType.HEADER, ComponentType.BODY]
 
-    __slots__ = ("text", "example", "param_format")
+    __slots__ = ("text", "example", "param_format", "_params_required")
 
     def __init__(self, text: str, *positionals_examples, **named_examples):
         """
@@ -1092,6 +1103,8 @@ class _BaseTextComponent:
             self.example = None
             self.text = text
 
+        self._params_required = self.param_format is not None
+
     def __repr__(self):
         if self.param_format == ParamFormat.POSITIONAL:
             return f"{self.__class__.__name__}(text={self.text!r}, {', '.join(map(repr, self.example))})"
@@ -1099,21 +1112,93 @@ class _BaseTextComponent:
             return f"{self.__class__.__name__}(text={self.text!r}, {', '.join(f'{k}={v!r}' for k, v in self.example.items())})"
         return f"{self.__class__.__name__}(text={self.text!r})"
 
-    def preview(self) -> str:
+    def preview(self, *override_positionals, **override_named) -> str:
         """
         Returns a preview of the template text with examples filled in.
+
+        Args:
+            *override_positionals: Positional arguments to override the example values (no need to provide all).
+            **override_named: Named arguments to override the example values (no need to provide all).
         """
         if self.param_format == ParamFormat.POSITIONAL:
-            txt = re.sub(
-                r"\{\{(\d+)}}", lambda m: f"{{{int(m.group(1)) - 1}}}", self.text
-            )  # Adjust for zero-based indexing
-            return txt.format(*self.example)
-        elif self.param_format == ParamFormat.NAMED:
-            return (
-                self.text.replace("{{", "{").replace("}}", "}").format(**self.example)
+            if override_named:
+                raise ValueError(
+                    "You can't use named overrides for positional parameters!"
+                )
+            if len(override_positionals) > len(self.example):
+                raise ValueError(
+                    f"Too many override positional arguments: expected at most {len(self.example)}, got {len(override_positionals)}."
+                )
+            example = tuple(
+                override_positionals[i]
+                if i < len(override_positionals)
+                else self.example[i]
+                for i in range(len(self.example))
             )
+            txt = re.sub(
+                r"\{\{(\d+)}}",
+                lambda m: f"{{{int(m.group(1)) - 1}}}",
+                self.text,
+            )  # Adjust for zero-based indexing
+            return txt.format(*example)
+        elif self.param_format == ParamFormat.NAMED:
+            if override_positionals:
+                raise ValueError(
+                    "You can't use positional overrides for named parameters!"
+                )
+            example = self.example.copy()
+            example.update(override_named)
+            txt = re.sub(
+                r"\{\{(\w+)}}",
+                lambda m: f"{{{m.group(1)}}}",
+                self.text,
+            )
+            return txt.format(**example)
         else:
             return self.text
+
+    def validate(self, *positionals, **named) -> NoReturn | None:
+        """
+        Validates the provided parameters against the component's expected parameters.
+
+        Args:
+            *positionals: Positional parameters to validate.
+            **named: Named parameters to validate.
+
+        Raises:
+            ValueError: If the provided parameters do not match the expected parameters.
+        """
+        if not self._params_required:
+            if positionals or named:
+                raise ValueError(
+                    f"{self.__class__.__name__} does not accept parameters as it was initialized without examples."
+                )
+            return
+
+        if self.param_format == ParamFormat.POSITIONAL:
+            if named:
+                raise ValueError(
+                    f"{self.__class__.__name__} does not accept named parameters when using positional format."
+                )
+            if len(positionals) != len(self.example):
+                raise ValueError(
+                    f"{self.__class__.__name__} requires {len(self.example)} positional parameters, got {len(positionals)}."
+                )
+        elif self.param_format == ParamFormat.NAMED:
+            if positionals:
+                raise ValueError(
+                    f"{self.__class__.__name__} does not accept positional parameters when using named format."
+                )
+            missing_params = set(self.example.keys()) - set(named.keys())
+            unexpected_params = set(named.keys()) - set(self.example.keys())
+            if missing_params:
+                raise ValueError(
+                    f"{self.__class__.__name__} is missing parameters: {', '.join(missing_params)}."
+                )
+            if unexpected_params:
+                raise ValueError(
+                    f"{self.__class__.__name__} received unexpected parameters: {', '.join(unexpected_params)}."
+                )
 
     def to_dict(self) -> dict:
         match self.param_format:
@@ -1215,35 +1300,7 @@ class _BaseTextComponent:
         else:  # BodyText.params("David")
             return _params_cls(*positionals, **named)
 
-        if not self.param_format:
-            raise ValueError(
-                f"{self.__class__.__name__} does not support parameters, as it has no example."
-            )
-        if self.param_format == ParamFormat.POSITIONAL:
-            if named:
-                raise ValueError(
-                    f"{self.__class__.__name__} does not support named parameters when text is positional."
-                )
-            if len(positionals) != len(self.example):
-                raise ValueError(
-                    f"{self.__class__.__name__} requires {len(self.example)} positional parameters, got {len(positionals)}."
-                )
-        if self.param_format == ParamFormat.NAMED:
-            if positionals:
-                raise ValueError(
-                    f"{self.__class__.__name__} does not support positional parameters when text is named."
-                )
-            missing_params = set(self.example.keys()) - set(named.keys())
-            unexpected_params = set(named.keys()) - set(self.example.keys())
-            if missing_params:
-                raise ValueError(
-                    f"{self.__class__.__name__} is missing parameters: {', '.join(missing_params)}."
-                )
-            if unexpected_params:
-                raise ValueError(
-                    f"{self.__class__.__name__} received unexpected parameters: {', '.join(unexpected_params)}."
-                )
-
+        self.validate(*positionals, **named)
         return self._Params(*positionals, **named)
 
 
@@ -1274,6 +1331,7 @@ class HeaderText(_BaseTextComponent, BaseHeaderComponent):
         }
 
     class _Params(_BaseTextComponent._Params):
+        comp_name = "HeaderText"
         typ = ComponentType.HEADER
 
     def params(
@@ -1466,6 +1524,7 @@ class HeaderImage(_BaseMediaHeaderComponent):
     class _Params(_BaseMediaParams):
         format = HeaderFormatType.IMAGE
         param_type = ParamType.IMAGE
+        comp_name = "HeaderImage"
 
         def __init__(
             self,
@@ -1530,6 +1589,7 @@ class HeaderVideo(_BaseMediaHeaderComponent):
     class _Params(_BaseMediaParams):
         format = HeaderFormatType.VIDEO
         param_type = ParamType.VIDEO
+        comp_name = "HeaderVideo"
 
         def __init__(
             self,
@@ -1596,6 +1656,7 @@ class HeaderGIF(_BaseMediaHeaderComponent):
     class _Params(_BaseMediaParams):
         format = HeaderFormatType.GIF
         param_type = ParamType.GIF
+        comp_name = "HeaderGIF"
 
         def __init__(
             self,
@@ -1660,6 +1721,7 @@ class HeaderDocument(_BaseMediaHeaderComponent):
     class _Params(_BaseMediaParams):
         format = HeaderFormatType.DOCUMENT
         param_type = ParamType.DOCUMENT
+        comp_name = "HeaderDocument"
 
         def __init__(
             self,
@@ -1733,6 +1795,8 @@ class HeaderLocation(BaseHeaderComponent):
     )
 
     class _Params(BaseParams):
+        comp_name = "HeaderLocation"
+
         def __init__(self, *, lat: float, lon: float, name: str, address: str):
             self.lat = lat
             self.lon = lon
@@ -1800,6 +1864,8 @@ class HeaderProduct(BaseHeaderComponent):
     )
 
     class _Params(BaseParams):
+        comp_name = "HeaderProduct"
+
         def __init__(self, *, catalog_id: str, sku: str):
             self.catalog_id = catalog_id
             self.sku = sku
@@ -1840,7 +1906,7 @@ class BaseBodyComponent(TemplateBaseComponent, abc.ABC):
     type: ComponentType
 
 
-class BodyText(_BaseTextComponent):
+class BodyText(_BaseTextComponent, BaseBodyComponent):
     """
     The body component represents the core text of your message template and is a text-only template component. It is required for all templates.
 
@@ -1861,6 +1927,7 @@ class BodyText(_BaseTextComponent):
 
     class _Params(_BaseTextComponent._Params):
         typ = ComponentType.BODY
+        comp_name = "BodyText"
 
     def params(
         *positionals,
@@ -2010,6 +2077,8 @@ class CopyCodeButton(BaseButtonComponent):
     example: str
 
     class _Params(BaseParams):
+        comp_name = "CopyCodeButton"
+
         def __init__(self, *, coupon_code: str, index: int):
             self.coupon_code = coupon_code
             self.index = index
@@ -2167,6 +2236,8 @@ class FlowButton(BaseButtonComponent):
         )
 
     class _Params(BaseParams):
+        comp_name = "FlowButton"
+
         def __init__(
             self,
             *,
@@ -2323,6 +2394,8 @@ class QuickReplyButton(BaseButtonComponent):
     text: str
 
     class _Params(BaseParams):
+        comp_name = "QuickReplyButton"
+
         def __init__(self, *, callback_data: str | CallbackData, index: int):
             self.callback_data = callback_data
             self.index = index
@@ -2425,6 +2498,7 @@ class URLButton(BaseButtonComponent):
         self.url = url
         self.example = example
         self.app_deep_link = app_deep_link
+        self._params_required = self.example is not None
 
     def to_dict(self) -> dict:
         data = {
@@ -2453,6 +2527,8 @@ class URLButton(BaseButtonComponent):
         )
 
     class _Params(BaseParams):
+        comp_name = "URLButton"
+
         def __init__(self, *, url_variable: str, index: int):
             self.url_variable = url_variable
             self.index = index
@@ -2552,6 +2628,8 @@ class CatalogButton(BaseButtonComponent):
     text: str
 
     class _Params(BaseParams):
+        comp_name = "CatalogButton"
+
         def __init__(self, *, thumbnail_product_sku: str | None = None, index: int):
             """
             Fill the parameters for the catalog button component.
@@ -2641,6 +2719,8 @@ class MPMButton(BaseButtonComponent):
     text: str
 
     class _Params(BaseParams):
+        comp_name = "MPMButton"
+
         def __init__(
             self,
             *,
@@ -2796,6 +2876,8 @@ class _BaseOTPButtonParams:
     """
 
     class _Params(BaseParams):
+        comp_name = "OTPButton"
+
         def __init__(self, otp: str):
             self.otp = otp
 
@@ -3067,6 +3149,7 @@ class LimitedTimeOffer(TemplateBaseComponent):
     def __init__(self, *, text: str, has_expiration: bool | None = None):
         self.text = text
         self.has_expiration = has_expiration
+        self._params_required = has_expiration is not None
 
     def __repr__(self):
         return f"LimitedTimeOffer(text={self.text!r}, has_expiration={self.has_expiration!r})"
@@ -3092,7 +3175,9 @@ class LimitedTimeOffer(TemplateBaseComponent):
         )
 
     class _Params(BaseParams):
-        def __init__(self, *, expiration_time: datetime.datetime | None = None):
+        comp_name = "LimitedTimeOffer"
+
+        def __init__(self, *, expiration_time: datetime.datetime):
             self.expiration_time = expiration_time
 
         def to_dict(self) -> dict:
@@ -3161,7 +3246,7 @@ class Carousel(TemplateBaseComponent):
         ...         params=[
         ...             hi1.params(image="https://cdn.com/card1.jpg"),
         ...             qr1.params(callback_data="unsubscribe_card1", index=0),
-        ...             u1.params(url_variable="card1", index=0),
+        ...             u1.params(url_variable="card1", index=1),
         ...         ],
         ...     ),
         ...     card2.params(
@@ -3169,7 +3254,7 @@ class Carousel(TemplateBaseComponent):
         ...         params=[
         ...             hi2.params(image="https://cdn.com/card2.jpg"),
         ...             qr2.params(callback_data="unsubscribe_card2", index=0),
-        ...             u2.params(url_variable="card2", index=0),
+        ...             u2.params(url_variable="card2", index=1),
         ...         ],
         ...     ),
         ... ])
@@ -3198,6 +3283,14 @@ class Carousel(TemplateBaseComponent):
                 )
                 for card in data["cards"]
             ]
+        )
+
+    @property
+    def _params_required(self) -> bool:
+        return any(
+            getattr(comp, "_params_required", False)
+            for card in self.cards
+            for comp in card.components
         )
 
     class _Params(BaseParams):
@@ -3328,6 +3421,8 @@ class AuthenticationBody(BaseBodyComponent):
     add_security_recommendation: bool | None = None
 
     class _Params(BaseParams):
+        comp_name = "AuthenticationBody"
+
         def __init__(self, *, otp: str):
             self.otp = otp
 
@@ -3503,6 +3598,18 @@ class Template:
         Convert the template to a JSON string representation.
         """
         return _template_to_json(self)
+
+    def validate_params(self, params: list[BaseParams] | None) -> NoReturn | None:
+        """
+        Validate the provided parameters against the template's components.
+
+        Args:
+            params: A list of BaseParams instances representing the parameters to validate.
+
+        Raises:
+            ValueError: If there are missing or extra parameters for the template's components.
+        """
+        _validate_params(self.components, params)
 
     @classmethod
     def from_dict(cls, data: dict) -> Template:
@@ -3680,6 +3787,123 @@ def _template_to_json(template: Template | LibraryTemplate) -> str:
         indent=4,
         ensure_ascii=False,
     )
+
+
+def _is_component_required_params(comp: TemplateBaseComponent) -> bool:
+    if isinstance(comp, Buttons):
+        return any(_is_component_required_params(button) for button in comp.buttons)
+    return hasattr(comp, "_Params") and getattr(comp, "_params_required", True)
+
+
+def _collect_required_components(
+    components: list[TemplateBaseComponent],
+) -> list[TemplateBaseComponent]:
+    required = []
+
+    def visit(comp: TemplateBaseComponent) -> None:
+        if not _is_component_required_params(comp):
+            return
+        required.append(comp)
+
+        if isinstance(comp, Buttons):
+            for button in comp.buttons:
+                visit(button)
+
+    for c in components:
+        visit(c)
+
+    return required
+
+
+def _find_param_for_component(
+    params: list[BaseParams], param_type: type[BaseParams]
+) -> BaseParams | None:
+    for i, p in enumerate(params):
+        if isinstance(p, param_type):
+            return params.pop(i)
+    return None
+
+
+def _validate_params(
+    components: list[TemplateBaseComponent],
+    params: list[BaseParams] = None,
+) -> None:
+    real_params = [
+        p
+        for p in (params or [])
+        if not isinstance(p, dict) and getattr(p, "_real_param", True)
+    ]
+    required_comps = [c for c in components if _is_component_required_params(c)]
+    if not required_comps:
+        if real_params:
+            raise ValueError(
+                "Template does not expect any parameters, but some were provided."
+            )
+        return
+
+    remaining_params = real_params.copy()
+
+    for comp in components:
+        if isinstance(comp, Buttons):
+            for i, button in enumerate(comp.buttons):
+                if not _is_component_required_params(button):
+                    continue
+                button_param = next(
+                    (
+                        p
+                        for p in remaining_params
+                        if isinstance(p, button._Params) and p.index == i
+                    ),
+                    None,
+                )
+                if button_param is None:
+                    raise ValueError(
+                        f"Missing parameter for button #{i} ({type(button).__name__})"
+                    )
+                remaining_params.remove(button_param)
+
+        elif isinstance(comp, Carousel):
+            carousel_param = _find_param_for_component(
+                remaining_params, Carousel._Params
+            )
+            if carousel_param is None:
+                raise ValueError("Missing parameters for Carousel component.")
+            if len(carousel_param.cards) != len(comp.cards):
+                raise ValueError(
+                    f"Expected {len(comp.cards)} cards in Carousel parameters, but got {len(carousel_param.cards)}."
+                )
+            for i, card in enumerate(comp.cards):
+                card_param = next(
+                    (cp for cp in carousel_param.cards if cp.index == i), None
+                )
+                if card_param is None:
+                    raise ValueError(f"Missing parameters for card #{i} in Carousel.")
+                try:
+                    _validate_params(card.components, card_param.params)
+                except ValueError as e:
+                    raise ValueError(f"In Carousel card #{i}: {e}") from e
+
+    missing = []
+    for comp in required_comps:
+        if isinstance(comp, (Buttons, Carousel)):
+            continue
+        param = _find_param_for_component(remaining_params, comp._Params)
+        if param is None:
+            missing.append(comp)
+            continue
+        if isinstance(param, _BaseTextComponent._Params):
+            comp.validate(*param.positionals, **param.named)
+
+    errors = []
+    if missing:
+        names = ", ".join(type(c).__name__ for c in missing)
+        errors.append(f"Missing parameters for: {names}")
+    if remaining_params:
+        extra = ", ".join(p.comp_name for p in remaining_params)
+        errors.append(f"Extra parameters provided: {extra}")
+
+    if errors:
+        raise ValueError("; ".join(errors))
 
 
 @dataclasses.dataclass(kw_only=True, slots=True)
@@ -3893,6 +4117,7 @@ class TemplateDetails(utils.APIObject):
         to: str | int,
         params: list[BaseParams],
         *,
+        validate: bool = True,
         use_mm_lite_api: bool = False,
         message_activity_sharing: bool | None = None,
         reply_to_message_id: str | None = None,
@@ -3905,12 +4130,15 @@ class TemplateDetails(utils.APIObject):
         Args:
             to: The phone ID of the WhatsApp user.
             params: The parameters to fill in the template.
+            validate: Whether to validate the parameters against the template's components before sending (optional, default: True).
             use_mm_lite_api: Whether to use `Marketing Messages Lite API <https://developers.facebook.com/docs/whatsapp/marketing-messages-lite-api>`_ (optional, default: False).
             message_activity_sharing: Whether to share message activities (e.g. message read) for that specific marketing message to Meta to help optimize marketing messages (optional, only if ``use_mm_lite_api`` is True).
             reply_to_message_id: The ID of the message to reply to (optional).
             tracker: A callback data to track the message (optional, can be a string or a :class:`CallbackData` object).
             sender: The phone ID to send the template from (optional, if not provided, the client's phone ID will be used).
         """
+        if validate:
+            _validate_params(self.components, params)
         return self._client.send_template(
             to=to,
             name=self.name,
