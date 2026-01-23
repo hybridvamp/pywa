@@ -3895,7 +3895,7 @@ def _validate_params(
         names = ", ".join(type(c).__name__ for c in missing)
         errors.append(f"Missing parameters for: {names}")
     if remaining_params:
-        extra = ", ".join(type(p).__name__ for p in remaining_params)
+        extra = ", ".join(p.comp_name for p in remaining_params)
         errors.append(f"Extra parameters provided: {extra}")
 
     if errors:
